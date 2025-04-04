@@ -1,0 +1,43 @@
+{
+	"name": "magicslider",
+	"version": "0.1.0",
+	"description": "A flexible and customizable slider component for React",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsc",
+		"prepare": "npm run build",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/michaelheilemann/magicslider.git"
+	},
+	"keywords": [
+		"react",
+		"slider",
+		"component",
+		"typescript",
+		"tailwind"
+	],
+	"author": "Michael Heilemann",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/michaelheilemann/magicslider/issues"
+	},
+	"homepage": "https://github.com/michaelheilemann/magicslider#readme",
+	"peerDependencies": {
+		"@react-spring/web": "^9.7.5",
+		"react": "^18.0.0",
+		"react-dom": "^18.0.0",
+		"tailwind-merge": "^2.6.0"
+	},
+	"devDependencies": {
+		"@types/react": "^18.3.20",
+		"@types/react-dom": "^18.3.6",
+		"typescript": "^5.8.2"
+	}
+}
