@@ -16,9 +16,6 @@
 		"type": "git",
 		"url": "git+https://github.com/Heilemann/magic-slider.git"
 	},
-	"publishConfig": {
-		"registry": "https://npm.pkg.github.com"
-	},
 	"keywords": [
 		"react",
 		"slider",
