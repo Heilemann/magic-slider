@@ -1,6 +1,6 @@
 {
 	"name": "react-magic-slider",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "A flexible and customizable slider component for React",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",

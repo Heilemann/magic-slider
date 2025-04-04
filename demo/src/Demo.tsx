@@ -11,9 +11,7 @@ export const Demo = () => {
 
 	return (
 		<div className='p-4 max-w-sm mx-auto'>
-			<h1 className='text-3xl font-bold text-blue-600 mb-8'>
-				Magic Slider Demo
-			</h1>
+			<h1 className='text-3xl font-bold mb-8'>Magic Slider Demo</h1>
 
 			<div className='space-y-8'>
 				{/* Example 1: Labeled slider with min/max */}
@@ -28,6 +26,7 @@ export const Demo = () => {
 						label='Volume'
 						min={0}
 						max={100}
+						handleSize='proportional'
 						className='w-full'
 					/>
 					<div className='mt-2 text-sm text-gray-500'>Volume: {value1}</div>
@@ -44,6 +43,7 @@ export const Demo = () => {
 						max={5}
 						step={1}
 						label='Rating'
+						handleSize='proportional'
 						className='w-full'
 					/>
 					<div className='mt-2 text-sm text-gray-500'>Rating: {value2}</div>

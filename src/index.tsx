@@ -16,6 +16,7 @@ interface SliderProps<T extends SliderValue> {
 	className?: string
 	renderValue?: (value: T) => React.ReactNode
 	mode?: 'default' | 'tabs'
+	handleSize?: 'fixed' | 'proportional'
 }
 
 const HANDLE_WIDTH_CONTINUOUS = 24
@@ -115,6 +116,7 @@ function Slider<T extends SliderValue>({
 	className = '',
 	renderValue,
 	mode = 'default',
+	handleSize = 'fixed',
 }: SliderProps<T>) {
 	const isDiscrete = Boolean(values)
 	const sliderRef = useRef<HTMLDivElement>(null)
@@ -149,10 +151,21 @@ function Slider<T extends SliderValue>({
 		const totalWidth = sliderRef.current.getBoundingClientRect().width
 		if (isDiscrete && values) {
 			setHandleWidth(totalWidth / values.length)
+		} else if (handleSize === 'proportional') {
+			const stepWidth = (totalWidth / (max - min)) * step
+			setHandleWidth(stepWidth)
 		} else {
 			setHandleWidth(HANDLE_WIDTH_CONTINUOUS)
 		}
-	}, [isDiscrete, values, sliderRef.current?.getBoundingClientRect().width])
+	}, [
+		isDiscrete,
+		values,
+		sliderRef.current?.getBoundingClientRect().width,
+		handleSize,
+		step,
+		max,
+		min,
+	])
 
 	// Get current value as a percentage (0-100)
 	const getCurrentValue = useCallback(() => {
