@@ -38,6 +38,66 @@ function App() {
 }
 ```
 
+## Demo
+
+The package includes a demo showcasing different slider configurations:
+
+1. **Basic Slider**
+
+   - Simple continuous slider with default behavior
+
+   ```tsx
+   <Slider value={value} onChange={setValue} />
+   ```
+
+2. **Step Slider**
+
+   - Discrete steps with min/max/step configuration
+
+   ```tsx
+   <Slider value={value} onChange={setValue} min={1} max={5} step={1} />
+   ```
+
+3. **Custom Value Display**
+
+   - Custom formatting of displayed values
+
+   ```tsx
+   <Slider
+   	value={value}
+   	onChange={setValue}
+   	renderValue={value => `${value}%`}
+   />
+   ```
+
+4. **Tab Mode**
+
+   - Predefined values with tab-like interface
+
+   ```tsx
+   <Slider
+   	value={value}
+   	onChange={setValue}
+   	mode='tabs'
+   	values={['small', 'medium', 'large']}
+   />
+   ```
+
+5. **Labeled Slider**
+   - Slider with label and min/max constraints
+   ```tsx
+   <Slider value={value} onChange={setValue} label='Volume' min={0} max={100} />
+   ```
+
+To run the demo locally:
+
+```bash
+git clone https://github.com/Heilemann/magic-slider.git
+cd magic-slider
+npm install
+npm run dev
+```
+
 ## Props
 
 | Prop         | Type                          | Default   | Description                         |

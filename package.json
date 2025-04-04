@@ -10,7 +10,8 @@
 	"scripts": {
 		"build": "tsc",
 		"prepare": "npm run build",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "vite"
 	},
 	"repository": {
 		"type": "git",
@@ -30,14 +31,21 @@
 	},
 	"homepage": "https://github.com/Heilemann/magic-slider#readme",
 	"peerDependencies": {
+		"@react-spring/web": "^9.0.0",
 		"react": "^18.0.0",
 		"react-dom": "^18.0.0",
-		"@react-spring/web": "^9.0.0",
 		"tailwind-merge": "^2.0.0"
 	},
 	"devDependencies": {
+		"@tailwindcss/postcss": "^4.0.0",
+		"@types/node": "^22.14.0",
 		"@types/react": "^18.0.0",
 		"@types/react-dom": "^18.0.0",
-		"typescript": "^5.0.0"
+		"@vitejs/plugin-react": "^4.3.4",
+		"postcss": "^8.4.35",
+		"postcss-load-config": "^4.0.0",
+		"tailwindcss": "^4.0.0",
+		"typescript": "^5.0.0",
+		"vite": "^5.4.17"
 	}
 }
