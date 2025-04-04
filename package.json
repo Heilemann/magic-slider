@@ -14,7 +14,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/michaelheilemann/magicslider.git"
+		"url": "git+https://github.com/Heilemann/magic-slider.git"
 	},
 	"keywords": [
 		"react",
@@ -26,18 +26,18 @@
 	"author": "Michael Heilemann",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/michaelheilemann/magicslider/issues"
+		"url": "https://github.com/Heilemann/magic-slider/issues"
 	},
-	"homepage": "https://github.com/michaelheilemann/magicslider#readme",
+	"homepage": "https://github.com/Heilemann/magic-slider#readme",
 	"peerDependencies": {
-		"@react-spring/web": "^9.7.5",
 		"react": "^18.0.0",
 		"react-dom": "^18.0.0",
-		"tailwind-merge": "^2.6.0"
+		"@react-spring/web": "^9.0.0",
+		"tailwind-merge": "^2.0.0"
 	},
 	"devDependencies": {
-		"@types/react": "^18.3.20",
-		"@types/react-dom": "^18.3.6",
-		"typescript": "^5.8.2"
+		"@types/react": "^18.0.0",
+		"@types/react-dom": "^18.0.0",
+		"typescript": "^5.0.0"
 	}
 }
