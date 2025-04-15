@@ -5,7 +5,7 @@ A flexible and customizable slider component for React with TypeScript support.
 ## Features
 
 - Supports both continuous and discrete values
-- Customizable appearance with Tailwind CSS
+- Customizable appearance with CSS
 - Smooth animations with React Spring
 - TypeScript support
 - Controlled and uncontrolled modes
@@ -40,17 +40,19 @@ function App() {
 
 ## Styling
 
-The component's styles are automatically included when you import it. No additional imports are required!
+The component's styles are automatically included when you import it. No additional configuration is required!
 
-If you're using Tailwind CSS in your project and want to customize the component, you can include its path in your tailwind.config.js:
+You can customize the appearance by overriding the CSS classes:
 
-```js
-module.exports = {
-	content: [
-		'./src/**/*.{js,jsx,ts,tsx}',
-		'./node_modules/magicslider/**/*.{js,jsx,ts,tsx}',
-	],
-	// rest of your config
+```css
+.magic-slider {
+	/* Override default styles */
+	background-color: #f0f0f0;
+}
+
+.magic-slider-handle {
+	/* Customize handle appearance */
+	background-color: #007bff;
 }
 ```
 

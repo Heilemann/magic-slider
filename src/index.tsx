@@ -24,11 +24,7 @@ const HANDLE_WIDTH_CONTINUOUS = 24
 
 const SliderLabel = ({ label }: { label?: string }) => {
 	if (!label) return null
-	return (
-		<div className='pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm text-gray-900'>
-			{label}
-		</div>
-	)
+	return <div className='magic-slider-label'>{label}</div>
 }
 
 const SliderValue = <T extends SliderValue>({
@@ -40,7 +36,7 @@ const SliderValue = <T extends SliderValue>({
 	renderValue?: (value: T) => React.ReactNode
 	getDisplayValue: () => string | T
 }) => (
-	<div className='pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 text-sm text-gray-500'>
+	<div className='magic-slider-value'>
 		{renderValue ? renderValue(value) : getDisplayValue()}
 	</div>
 )
@@ -69,20 +65,19 @@ const SliderHandle = <T extends SliderValue>({
 		return (
 			<>
 				<animated.div
-					className='absolute top-0 h-full rounded-md bg-black/10'
+					className='magic-slider-handle'
 					style={{
 						width: handleWidth,
 						...springs,
 					}}
 				/>
-				<div className='absolute top-0 flex h-full w-full'>
+				<div className='magic-slider-tabs'>
 					{values.map((v, i) => (
 						<div
 							key={i}
-							className={twMerge(
-								'flex h-full flex-1 cursor-pointer items-center justify-center text-sm transition-colors duration-200',
-								v === value ? 'text-black' : 'text-gray-500 hover:text-black',
-							)}
+							className={`magic-slider-tab ${
+								v === value ? 'active' : 'inactive'
+							}`}
 						>
 							{renderValue ? renderValue(v) : v}
 						</div>
@@ -94,7 +89,7 @@ const SliderHandle = <T extends SliderValue>({
 
 	return (
 		<animated.div
-			className='absolute top-0 h-full cursor-grab rounded-md bg-black/10 transition-none hover:bg-black/20 active:cursor-grabbing'
+			className='magic-slider-handle'
 			style={{
 				width: handleWidth,
 				...springs,
@@ -103,7 +98,7 @@ const SliderHandle = <T extends SliderValue>({
 	)
 }
 
-const ClickableArea = () => <div className='absolute inset-0 cursor-pointer' />
+const ClickableArea = () => <div className='magic-slider-clickable' />
 
 function Slider<T extends SliderValue>({
 	value: controlledValue,
@@ -308,10 +303,7 @@ function Slider<T extends SliderValue>({
 	return (
 		<div
 			ref={sliderRef}
-			className={twMerge(
-				'relative h-9 select-none overflow-hidden rounded-md bg-black/5',
-				className,
-			)}
+			className={twMerge('magic-slider', className)}
 			onMouseDown={handleMouseDown}
 		>
 			<SliderLabel label={label} />
