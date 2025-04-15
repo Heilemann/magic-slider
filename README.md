@@ -14,13 +14,13 @@ A flexible and customizable slider component for React with TypeScript support.
 ## Installation
 
 ```bash
-npm install magicslider
+npm install react-magic-slider
 ```
 
 ## Usage
 
 ```tsx
-import { Slider } from 'magicslider'
+import { Slider } from 'react-magic-slider'
 
 function App() {
 	const [value, setValue] = useState(50)
@@ -40,9 +40,7 @@ function App() {
 
 ## Styling
 
-The component's styles are automatically included when you import it. No additional configuration is required!
-
-You can customize the appearance by overriding the CSS classes:
+The component comes with built-in styles that are automatically included. You can customize the appearance by overriding the CSS classes:
 
 ```css
 .magic-slider {

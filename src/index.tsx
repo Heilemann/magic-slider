@@ -1,6 +1,5 @@
 import { animated, useSpring } from '@react-spring/web'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
 import './styles.css'
 
 type SliderValue = number | string
@@ -301,11 +300,7 @@ function Slider<T extends SliderValue>({
 	}, [getCurrentValue, handleWidth, isDiscrete, max, min])
 
 	return (
-		<div
-			ref={sliderRef}
-			className={twMerge('magic-slider', className)}
-			onMouseDown={handleMouseDown}
-		>
+		<div ref={sliderRef} className={className} onMouseDown={handleMouseDown}>
 			<SliderLabel label={label} />
 			{mode === 'default' && (
 				<SliderValue
