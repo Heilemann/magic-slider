@@ -38,6 +38,22 @@ function App() {
 }
 ```
 
+## Styling
+
+The component's styles are automatically included when you import it. No additional imports are required!
+
+If you're using Tailwind CSS in your project and want to customize the component, you can include its path in your tailwind.config.js:
+
+```js
+module.exports = {
+	content: [
+		'./src/**/*.{js,jsx,ts,tsx}',
+		'./node_modules/magicslider/**/*.{js,jsx,ts,tsx}',
+	],
+	// rest of your config
+}
+```
+
 ## Demo
 
 The package includes a demo showcasing different slider configurations:

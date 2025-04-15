@@ -1,6 +1,7 @@
 import { animated, useSpring } from '@react-spring/web'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import './styles.css'
 
 type SliderValue = number | string
 

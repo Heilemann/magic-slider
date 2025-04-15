@@ -3,12 +3,22 @@
 	"version": "0.2.0",
 	"description": "A flexible and customizable slider component for React",
 	"main": "dist/index.js",
+	"module": "dist/index.esm.js",
 	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.esm.js",
+			"require": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./style.css": "./dist/style.css"
+	},
+	"style": "dist/style.css",
 	"files": [
 		"dist"
 	],
 	"scripts": {
-		"build": "tsc",
+		"build": "vite build && tsc --emitDeclarationOnly",
 		"prepare": "npm run build",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"dev": "vite"
