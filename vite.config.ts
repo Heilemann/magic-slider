@@ -24,7 +24,9 @@ export default defineConfig({
 				},
 			},
 		},
-		cssMinify: true,
+		// Don't generate separate CSS files
+		cssCodeSplit: true,
+		minify: true,
 	},
 	// For development with the demo app
 	root: process.env.NODE_ENV === 'development' ? 'demo' : undefined,

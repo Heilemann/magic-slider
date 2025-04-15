@@ -1,6 +1,112 @@
 import { animated, useSpring } from '@react-spring/web'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import './styles.css'
+
+// Inject CSS styles directly
+const injectStyles = () => {
+	if (typeof document !== 'undefined') {
+		// Check if styles are already injected
+		if (!document.getElementById('magic-slider-styles')) {
+			const styleSheet = document.createElement('style')
+			styleSheet.id = 'magic-slider-styles'
+			styleSheet.textContent = `
+				/* Slider container */
+				.magic-slider {
+					position: relative;
+					height: 2.25rem;
+					user-select: none;
+					overflow: hidden;
+					border-radius: 0.375rem;
+					background-color: rgba(0, 0, 0, 0.05);
+				}
+
+				/* Slider label */
+				.magic-slider-label {
+					pointer-events: none;
+					position: absolute;
+					left: 0.75rem;
+					top: 50%;
+					z-index: 10;
+					transform: translateY(-50%);
+					font-size: 0.875rem;
+					color: rgb(17, 24, 39);
+				}
+
+				/* Slider value display */
+				.magic-slider-value {
+					pointer-events: none;
+					position: absolute;
+					right: 0.75rem;
+					top: 50%;
+					z-index: 10;
+					transform: translateY(-50%);
+					font-size: 0.875rem;
+					color: rgb(107, 114, 128);
+				}
+
+				/* Slider handle */
+				.magic-slider-handle {
+					position: absolute;
+					top: 0;
+					height: 100%;
+					border-radius: 0.375rem;
+					background-color: rgba(0, 0, 0, 0.1);
+					cursor: grab;
+					transition: none;
+				}
+
+				.magic-slider-handle:hover {
+					background-color: rgba(0, 0, 0, 0.2);
+				}
+
+				.magic-slider-handle:active {
+					cursor: grabbing;
+				}
+
+				/* Slider tabs container */
+				.magic-slider-tabs {
+					position: absolute;
+					top: 0;
+					display: flex;
+					height: 100%;
+					width: 100%;
+				}
+
+				/* Slider tab */
+				.magic-slider-tab {
+					display: flex;
+					height: 100%;
+					flex: 1;
+					cursor: pointer;
+					align-items: center;
+					justify-content: center;
+					font-size: 0.875rem;
+					transition-property: color;
+					transition-duration: 200ms;
+				}
+
+				.magic-slider-tab.active {
+					color: rgb(0, 0, 0);
+				}
+
+				.magic-slider-tab.inactive {
+					color: rgb(107, 114, 128);
+				}
+
+				.magic-slider-tab.inactive:hover {
+					color: rgb(0, 0, 0);
+				}
+
+				/* Clickable area */
+				.magic-slider-clickable {
+					position: absolute;
+					inset: 0;
+					cursor: pointer;
+				}
+			`
+			document.head.appendChild(styleSheet)
+		}
+	}
+}
 
 type SliderValue = number | string
 
@@ -113,6 +219,11 @@ function Slider<T extends SliderValue>({
 	mode = 'default',
 	handleSize = 'fixed',
 }: SliderProps<T>) {
+	// Inject styles on component mount
+	useEffect(() => {
+		injectStyles()
+	}, [])
+
 	const isDiscrete = Boolean(values)
 	const sliderRef = useRef<HTMLDivElement>(null)
 	const [handleWidth, setHandleWidth] = useState(HANDLE_WIDTH_CONTINUOUS)
@@ -300,7 +411,11 @@ function Slider<T extends SliderValue>({
 	}, [getCurrentValue, handleWidth, isDiscrete, max, min])
 
 	return (
-		<div ref={sliderRef} className={className} onMouseDown={handleMouseDown}>
+		<div
+			ref={sliderRef}
+			className={`magic-slider ${className}`}
+			onMouseDown={handleMouseDown}
+		>
 			<SliderLabel label={label} />
 			{mode === 'default' && (
 				<SliderValue
