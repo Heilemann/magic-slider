@@ -1,6 +1,6 @@
 {
 	"name": "react-magic-slider",
-	"version": "0.5.1",
+	"version": "0.6.0",
 	"type": "module",
 	"description": "A flexible and customizable slider component for React",
 	"main": "dist/index.js",
@@ -45,7 +45,7 @@
 	},
 	"homepage": "https://github.com/Heilemann/magic-slider#readme",
 	"peerDependencies": {
-		"@react-spring/web": "^9.0.0",
+		"@react-spring/web": "^10.0.0",
 		"react": "^18.0.0",
 		"react-dom": "^18.0.0"
 	},
