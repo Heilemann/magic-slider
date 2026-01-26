@@ -157,6 +157,38 @@ const injectStyles = () => {
 /** Supported value types for the slider */
 type SliderValue = number | string
 
+/** CSS class names for slider sub-components */
+interface SliderClassNames {
+	/** Root container element */
+	root?: string
+	/** Slider handle/thumb */
+	handle?: string
+	/** Label text */
+	label?: string
+	/** Value display */
+	value?: string
+	/** Tab items (when mode='tabs') */
+	tab?: string
+	/** Step dots container */
+	steps?: string
+}
+
+/** Inline styles for slider sub-components */
+interface SliderStyles {
+	/** Root container element */
+	root?: React.CSSProperties
+	/** Slider handle/thumb */
+	handle?: React.CSSProperties
+	/** Label text */
+	label?: React.CSSProperties
+	/** Value display */
+	value?: React.CSSProperties
+	/** Tab items (when mode='tabs') */
+	tab?: React.CSSProperties
+	/** Step dots container */
+	steps?: React.CSSProperties
+}
+
 /**
  * Props for the Slider component
  * @template T - The type of value the slider handles (number or string)
@@ -178,8 +210,12 @@ interface SliderProps<T extends SliderValue> {
 	step?: number
 	/** Array of discrete values. When provided, the slider snaps to these values only */
 	values?: T[]
-	/** Additional CSS class for the slider container */
+	/** Additional CSS class for the slider container (shorthand for classNames.root) */
 	className?: string
+	/** CSS class names for sub-components */
+	classNames?: SliderClassNames
+	/** Inline styles for sub-components */
+	styles?: SliderStyles
 	/** Custom render function for the value display */
 	renderValue?: (value: T) => React.ReactNode
 	/** Display mode: 'default' shows label/value, 'tabs' shows clickable segments */
@@ -196,21 +232,25 @@ interface SliderProps<T extends SliderValue> {
 
 const HANDLE_WIDTH_CONTINUOUS = 24
 
-const SliderLabel = React.memo(({ label }: { label?: string }) => {
+const SliderLabel = React.memo(({ label, className, style }: { label?: string; className?: string; style?: React.CSSProperties }) => {
 	if (!label) return null
-	return <div className='magic-slider-label'>{label}</div>
+	return <div className={`magic-slider-label ${className || ''}`} style={style}>{label}</div>
 })
 
-const SliderValue = <T extends SliderValue>({
+const SliderValueDisplay = <T extends SliderValue>({
 	value,
 	renderValue,
 	getDisplayValue,
+	className,
+	style,
 }: {
 	value: T
 	renderValue?: (value: T) => React.ReactNode
 	getDisplayValue: () => string | T
+	className?: string
+	style?: React.CSSProperties
 }) => (
-	<div className='magic-slider-value'>
+	<div className={`magic-slider-value ${className || ''}`} style={style}>
 		{renderValue ? renderValue(value) : getDisplayValue()}
 	</div>
 )
@@ -222,6 +262,10 @@ const SliderHandle = <T extends SliderValue>({
 	value,
 	values,
 	renderValue,
+	className,
+	style,
+	tabClassName,
+	tabStyle,
 }: {
 	handleWidth: number
 	position: number
@@ -229,6 +273,10 @@ const SliderHandle = <T extends SliderValue>({
 	value: T
 	values?: T[]
 	renderValue?: (value: T) => React.ReactNode
+	className?: string
+	style?: React.CSSProperties
+	tabClassName?: string
+	tabStyle?: React.CSSProperties
 }) => {
 	const isClient = useIsClient()
 	const springs = useSpring({
@@ -237,32 +285,35 @@ const SliderHandle = <T extends SliderValue>({
 	})
 
 	// Static styles for SSR (no animation)
-	const staticStyle = {
+	const staticStyle: React.CSSProperties = {
 		width: handleWidth,
 		transform: `translateX(${position}px)`,
+		...style,
 	}
+
+	const handleClassName = `magic-slider-handle ${className || ''}`
 
 	if (mode === 'tabs' && values) {
 		return (
 			<>
 				{isClient ? (
 					<animated.div
-						className='magic-slider-handle'
+						className={handleClassName}
 						style={{
 							width: handleWidth,
+							...style,
 							...springs,
 						}}
 					/>
 				) : (
-					<div className='magic-slider-handle' style={staticStyle} />
+					<div className={handleClassName} style={staticStyle} />
 				)}
 				<div className='magic-slider-tabs'>
 					{values.map((v, i) => (
 						<div
 							key={i}
-							className={`magic-slider-tab ${
-								v === value ? 'active' : 'inactive'
-							}`}
+							className={`magic-slider-tab ${v === value ? 'active' : 'inactive'} ${tabClassName || ''}`}
+							style={tabStyle}
 						>
 							{renderValue ? renderValue(v) : v}
 						</div>
@@ -273,14 +324,15 @@ const SliderHandle = <T extends SliderValue>({
 	}
 
 	if (!isClient) {
-		return <div className='magic-slider-handle' style={staticStyle} />
+		return <div className={handleClassName} style={staticStyle} />
 	}
 
 	return (
 		<animated.div
-			className='magic-slider-handle'
+			className={handleClassName}
 			style={{
 				width: handleWidth,
+				...style,
 				...springs,
 			}}
 		/>
@@ -319,11 +371,15 @@ const StepDots = React.memo(
 		handlePosition,
 		handleWidth,
 		totalWidth,
+		className,
+		style,
 	}: {
 		positions: number[]
 		handlePosition: number
 		handleWidth: number
 		totalWidth: number
+		className?: string
+		style?: React.CSSProperties
 	}) => {
 		if (positions.length === 0) return null
 
@@ -341,7 +397,7 @@ const StepDots = React.memo(
 		const handleEnd = handlePosition + handleWidth
 
 		return (
-			<div className='magic-slider-steps' style={{ '--dot-size': `${dotSize}px` } as React.CSSProperties}>
+			<div className={`magic-slider-steps ${className || ''}`} style={{ '--dot-size': `${dotSize}px`, ...style } as React.CSSProperties}>
 				{positions.map((percent, i) => {
 					// Calculate where the handle center would be at this position
 					let leftPercent: number
@@ -384,6 +440,8 @@ function Slider<T extends SliderValue>({
 	step = 1,
 	values,
 	className = '',
+	classNames,
+	styles,
 	renderValue,
 	mode = 'default',
 	handleSize = 'fixed',
@@ -785,7 +843,8 @@ function Slider<T extends SliderValue>({
 	return (
 		<div
 			ref={sliderRef}
-			className={`magic-slider ${className}`}
+			className={`magic-slider ${className} ${classNames?.root || ''}`}
+			style={styles?.root}
 			onMouseDown={handleMouseDown}
 			onTouchStart={handleTouchStart}
 			onKeyDown={handleKeyDown}
@@ -798,12 +857,14 @@ function Slider<T extends SliderValue>({
 			aria-label={ariaLabel || label}
 			aria-labelledby={ariaLabelledBy}
 		>
-			<SliderLabel label={label} />
+			<SliderLabel label={label} className={classNames?.label} style={styles?.label} />
 			{mode === 'default' && (
-				<SliderValue
+				<SliderValueDisplay
 					value={value}
 					renderValue={renderValue}
 					getDisplayValue={getDisplayValue}
+					className={classNames?.value}
+					style={styles?.value}
 				/>
 			)}
 			{showSteps && stepPositions.length > 0 && (
@@ -812,6 +873,8 @@ function Slider<T extends SliderValue>({
 					handlePosition={getHandlePosition()}
 					handleWidth={handleWidth}
 					totalWidth={totalWidth}
+					className={classNames?.steps}
+					style={styles?.steps}
 				/>
 			)}
 			<SliderHandle
@@ -821,6 +884,10 @@ function Slider<T extends SliderValue>({
 				value={value}
 				values={values}
 				renderValue={renderValue}
+				className={classNames?.handle}
+				style={styles?.handle}
+				tabClassName={classNames?.tab}
+				tabStyle={styles?.tab}
 			/>
 			<ClickableArea />
 		</div>
@@ -828,4 +895,4 @@ function Slider<T extends SliderValue>({
 }
 
 export { Slider }
-export type { SliderProps, SliderValue }
+export type { SliderProps, SliderValue, SliderClassNames, SliderStyles }
