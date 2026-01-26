@@ -1,6 +1,15 @@
 import { animated, useSpring } from '@react-spring/web'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+// Hook to detect client-side hydration (avoids SSR issues with react-spring)
+const useIsClient = () => {
+	const [isClient, setIsClient] = useState(false)
+	useEffect(() => {
+		setIsClient(true)
+	}, [])
+	return isClient
+}
+
 // Inject CSS styles directly
 const injectStyles = () => {
 	if (typeof document !== 'undefined') {
@@ -221,21 +230,32 @@ const SliderHandle = <T extends SliderValue>({
 	values?: T[]
 	renderValue?: (value: T) => React.ReactNode
 }) => {
+	const isClient = useIsClient()
 	const springs = useSpring({
 		transform: `translateX(${position}px)`,
 		config: { tension: 200, friction: 20 },
 	})
 
+	// Static styles for SSR (no animation)
+	const staticStyle = {
+		width: handleWidth,
+		transform: `translateX(${position}px)`,
+	}
+
 	if (mode === 'tabs' && values) {
 		return (
 			<>
-				<animated.div
-					className='magic-slider-handle'
-					style={{
-						width: handleWidth,
-						...springs,
-					}}
-				/>
+				{isClient ? (
+					<animated.div
+						className='magic-slider-handle'
+						style={{
+							width: handleWidth,
+							...springs,
+						}}
+					/>
+				) : (
+					<div className='magic-slider-handle' style={staticStyle} />
+				)}
 				<div className='magic-slider-tabs'>
 					{values.map((v, i) => (
 						<div
@@ -250,6 +270,10 @@ const SliderHandle = <T extends SliderValue>({
 				</div>
 			</>
 		)
+	}
+
+	if (!isClient) {
+		return <div className='magic-slider-handle' style={staticStyle} />
 	}
 
 	return (
