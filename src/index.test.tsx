@@ -245,4 +245,56 @@ describe('Slider', () => {
 			expect(screen.getByText('50%')).toBeInTheDocument()
 		})
 	})
+
+	describe('showSteps', () => {
+		it('renders step dots when showSteps is true', () => {
+			const { container } = render(
+				<Slider min={0} max={10} step={2} showSteps />,
+			)
+
+			const stepsContainer = container.querySelector('.magic-slider-steps')
+			expect(stepsContainer).toBeInTheDocument()
+
+			const dots = container.querySelectorAll('.magic-slider-step-dot')
+			expect(dots.length).toBe(6) // 0, 2, 4, 6, 8, 10
+		})
+
+		it('does not render step dots when showSteps is false', () => {
+			const { container } = render(
+				<Slider min={0} max={10} step={2} showSteps={false} />,
+			)
+
+			const stepsContainer = container.querySelector('.magic-slider-steps')
+			expect(stepsContainer).not.toBeInTheDocument()
+		})
+
+		it('renders dots for discrete values', () => {
+			const values = ['small', 'medium', 'large']
+			const { container } = render(
+				<Slider values={values} value="medium" showSteps />,
+			)
+
+			const dots = container.querySelectorAll('.magic-slider-step-dot')
+			expect(dots.length).toBe(3)
+		})
+
+		it('does not render dots when step count exceeds 50', () => {
+			const { container } = render(
+				<Slider min={0} max={100} step={1} showSteps />,
+			)
+
+			// 101 steps would exceed the 50 limit
+			const stepsContainer = container.querySelector('.magic-slider-steps')
+			expect(stepsContainer).not.toBeInTheDocument()
+		})
+
+		it('renders correct number of dots for step value', () => {
+			const { container } = render(
+				<Slider min={0} max={100} step={50} showSteps />,
+			)
+
+			const dots = container.querySelectorAll('.magic-slider-step-dot')
+			expect(dots.length).toBe(3) // 0, 50, 100
+		})
+	})
 })

@@ -7,7 +7,8 @@ export const Demo = () => {
 	const [value2, setValue2] = useState(3)
 	const [value3, setValue3] = useState(75)
 	const [value4, setValue4] = useState('medium')
-	const [value5, setValue5] = useState(50)
+	const [value5, setValue5] = useState(3)
+	const [value6, setValue6] = useState('M')
 
 	return (
 		<div className='p-4 max-w-sm mx-auto'>
@@ -18,7 +19,9 @@ export const Demo = () => {
 				<div>
 					<h2 className='text-xl font-semibold mb-2'>1. Labeled Slider</h2>
 					<p className='text-gray-600 mb-4'>
-						Slider with label and min/max values
+						A continuous slider with a label on the left and value on the right.
+						Uses <code className='text-xs bg-gray-100 px-1 rounded'>handleSize="proportional"</code> so
+						the handle width scales with the step size.
 					</p>
 					<Slider
 						value={value1}
@@ -35,7 +38,11 @@ export const Demo = () => {
 				{/* Example 2: Discrete slider with steps */}
 				<div>
 					<h2 className='text-xl font-semibold mb-2'>2. Step Slider</h2>
-					<p className='text-gray-600 mb-4'>Slider with discrete steps (1-5)</p>
+					<p className='text-gray-600 mb-4'>
+						Numeric slider that snaps to integer values 1-5. The proportional handle
+						expands to show each step as a distinct zone. Great for ratings or
+						settings with few options.
+					</p>
 					<Slider
 						value={value2}
 						onChange={setValue2}
@@ -55,7 +62,9 @@ export const Demo = () => {
 						3. Custom Value Display
 					</h2>
 					<p className='text-gray-600 mb-4'>
-						Slider with custom value formatting
+						Uses <code className='text-xs bg-gray-100 px-1 rounded'>renderValue</code> to
+						format the displayed value with a percent sign. The handle uses the
+						default fixed width of 24px.
 					</p>
 					<Slider
 						value={value3}
@@ -70,7 +79,9 @@ export const Demo = () => {
 				<div>
 					<h2 className='text-xl font-semibold mb-2'>4. Tab Mode</h2>
 					<p className='text-gray-600 mb-4'>
-						Slider in tab mode with predefined values
+						Switches to <code className='text-xs bg-gray-100 px-1 rounded'>mode="tabs"</code> which
+						displays labels for each discrete value inside the track. Click anywhere
+						to select, or drag to slide between options.
 					</p>
 					<Slider
 						value={value4}
@@ -80,6 +91,46 @@ export const Demo = () => {
 						className='w-full'
 					/>
 					<div className='mt-2 text-sm text-gray-500'>Size: {value4}</div>
+				</div>
+
+				{/* Example 5: Step dots */}
+				<div>
+					<h2 className='text-xl font-semibold mb-2'>5. Step Dots</h2>
+					<p className='text-gray-600 mb-4'>
+						Enable <code className='text-xs bg-gray-100 px-1 rounded'>showSteps</code> to
+						reveal indicator dots on hover. Dots animate in with a spring effect
+						and fade out when the handle covers them.
+					</p>
+					<Slider
+						value={value5}
+						onChange={setValue5}
+						min={1}
+						max={5}
+						step={1}
+						label='Level'
+						showSteps
+						handleSize='proportional'
+						className='w-full'
+					/>
+					<div className='mt-2 text-sm text-gray-500'>Level: {value5}</div>
+				</div>
+
+				{/* Example 6: Step dots with discrete values */}
+				<div>
+					<h2 className='text-xl font-semibold mb-2'>6. Step Dots (Discrete)</h2>
+					<p className='text-gray-600 mb-4'>
+						Step dots also work with the <code className='text-xs bg-gray-100 px-1 rounded'>values</code> array
+						for string-based options. Dots are positioned at the center of each
+						handle stop position.
+					</p>
+					<Slider
+						value={value6}
+						onChange={setValue6}
+						values={['XS', 'S', 'M', 'L', 'XL']}
+						showSteps
+						className='w-full'
+					/>
+					<div className='mt-2 text-sm text-gray-500'>Size: {value6}</div>
 				</div>
 			</div>
 		</div>

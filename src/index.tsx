@@ -1,5 +1,5 @@
 import { animated, useSpring } from '@react-spring/web'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Inject CSS styles directly
 const injectStyles = () => {
@@ -109,6 +109,36 @@ const injectStyles = () => {
 					inset: 0;
 					cursor: pointer;
 				}
+
+				/* Step indicator dots */
+				.magic-slider-steps {
+					position: absolute;
+					inset: 0;
+					pointer-events: none;
+					z-index: 1;
+				}
+
+				.magic-slider-step-dot {
+					position: absolute;
+					top: 50%;
+					width: 4px;
+					height: 4px;
+					border-radius: 50%;
+					background-color: rgba(0, 0, 0, 0.25);
+					transform: translate(-50%, -50%) scale(0);
+					opacity: 0;
+					transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease;
+				}
+
+				.magic-slider:hover .magic-slider-step-dot {
+					transform: translate(-50%, -50%) scale(1);
+					opacity: 1;
+				}
+
+				.magic-slider:hover .magic-slider-step-dot.under-handle {
+					transform: translate(-50%, -50%) scale(0);
+					opacity: 0;
+				}
 			`
 			document.head.appendChild(styleSheet)
 		}
@@ -151,6 +181,8 @@ interface SliderProps<T extends SliderValue> {
 	'aria-label'?: string
 	/** ID of element that labels this slider */
 	'aria-labelledby'?: string
+	/** Show step indicator dots on the track */
+	showSteps?: boolean
 }
 
 const HANDLE_WIDTH_CONTINUOUS = 24
@@ -233,6 +265,85 @@ const SliderHandle = <T extends SliderValue>({
 
 const ClickableArea = React.memo(() => <div className='magic-slider-clickable' />)
 
+/** Calculate step positions as percentages (0-100) */
+const calculateStepPositions = <T extends SliderValue>(
+	min: number,
+	max: number,
+	step: number,
+	values?: T[],
+): number[] => {
+	if (values) {
+		// For discrete values: position based on index
+		if (values.length > 50) return []
+		return values.map((_, i) => (i / (values.length - 1)) * 100)
+	}
+
+	// For continuous: position based on step increments
+	const stepCount = Math.round((max - min) / step) + 1
+	if (stepCount > 50) return []
+
+	const positions: number[] = []
+	for (let i = 0; i < stepCount; i++) {
+		positions.push((i / (stepCount - 1)) * 100)
+	}
+	return positions
+}
+
+const StepDots = React.memo(
+	({
+		positions,
+		handlePosition,
+		handleWidth,
+		totalWidth,
+	}: {
+		positions: number[]
+		handlePosition: number
+		handleWidth: number
+		totalWidth: number
+	}) => {
+		if (positions.length === 0) return null
+
+		const handleStart = handlePosition
+		const handleEnd = handlePosition + handleWidth
+
+		return (
+			<div className='magic-slider-steps'>
+				{positions.map((percent, i) => {
+					// Calculate where the handle center would be at this position
+					// Use percentage-based calculation that accounts for handle width
+					let leftPercent: number
+					if (totalWidth > 0) {
+						const maxOffset = totalWidth - handleWidth
+						const handlePosAtStep = (percent / 100) * maxOffset
+						const dotX = handlePosAtStep + handleWidth / 2
+						leftPercent = (dotX / totalWidth) * 100
+					} else {
+						// Fallback for test environment or before layout
+						leftPercent = percent
+					}
+
+					const isUnderHandle =
+						totalWidth > 0 &&
+						(() => {
+							const maxOffset = totalWidth - handleWidth
+							const handlePosAtStep = (percent / 100) * maxOffset
+							const dotX = handlePosAtStep + handleWidth / 2
+							return dotX >= handleStart && dotX <= handleEnd
+						})()
+
+					return (
+						<div
+							key={i}
+							className={`magic-slider-step-dot ${isUnderHandle ? 'under-handle' : ''}`}
+							style={{ left: `${leftPercent}%` }}
+						/>
+					)
+				})}
+			</div>
+		)
+	},
+)
+
 function Slider<T extends SliderValue>({
 	value: controlledValue,
 	defaultValue,
@@ -248,6 +359,7 @@ function Slider<T extends SliderValue>({
 	handleSize = 'fixed',
 	'aria-label': ariaLabel,
 	'aria-labelledby': ariaLabelledBy,
+	showSteps = false,
 }: SliderProps<T>) {
 	// Inject styles on component mount
 	useEffect(() => {
@@ -294,6 +406,7 @@ function Slider<T extends SliderValue>({
 	const isDiscrete = Boolean(values)
 	const sliderRef = useRef<HTMLDivElement>(null)
 	const [handleWidth, setHandleWidth] = useState(HANDLE_WIDTH_CONTINUOUS)
+	const [totalWidth, setTotalWidth] = useState(0)
 	const [isDragging, setIsDragging] = useState(false)
 	const startValueRef = useRef(0)
 	const startXRef = useRef(0)
@@ -323,19 +436,26 @@ function Slider<T extends SliderValue>({
 		[controlledValue, onChange],
 	)
 
-	// Update handle width when container size or discrete values change
+	// Update handle width and total width when container size or discrete values change
 	useEffect(() => {
 		if (!sliderRef.current) return
-		const totalWidth = sliderRef.current.getBoundingClientRect().width
+		const width = sliderRef.current.getBoundingClientRect().width
+		setTotalWidth(width)
 		if (isDiscrete && values) {
-			setHandleWidth(totalWidth / values.length)
+			setHandleWidth(width / values.length)
 		} else if (handleSize === 'proportional') {
-			const stepWidth = (totalWidth / (max - min)) * step
+			const stepWidth = (width / (max - min)) * step
 			setHandleWidth(stepWidth)
 		} else {
 			setHandleWidth(HANDLE_WIDTH_CONTINUOUS)
 		}
 	}, [isDiscrete, values, handleSize, step, max, min])
+
+	// Calculate step positions for step dots
+	const stepPositions = useMemo(() => {
+		if (!showSteps) return []
+		return calculateStepPositions(min, max, step, values)
+	}, [showSteps, min, max, step, values])
 
 	// Get current value as a percentage (0-100)
 	const getCurrentValue = useCallback(() => {
@@ -373,11 +493,29 @@ function Slider<T extends SliderValue>({
 				return
 			}
 
+			// For discrete values, click to jump to nearest value
+			if (isDiscrete && values) {
+				const relativeX = clientX - rect.left
+				const index = Math.round((relativeX / rect.width) * (values.length - 1))
+				handleChange(values[Math.max(0, Math.min(index, values.length - 1))])
+				setIsDragging(true)
+				startValueRef.current = index
+				startXRef.current = clientX - rect.left
+				return
+			}
+
+			// For continuous sliders, jump to clicked position
+			const relativeX = clientX - rect.left
+			const clickedValue = min + (relativeX / rect.width) * (max - min)
+			const steppedValue = Math.round(clickedValue / step) * step
+			const clampedValue = Math.max(min, Math.min(max, steppedValue))
+			handleChange(clampedValue as T)
+
 			setIsDragging(true)
-			startValueRef.current = getCurrentValue()
-			startXRef.current = clientX - rect.left
+			startValueRef.current = clampedValue
+			startXRef.current = relativeX
 		},
-		[getCurrentValue, isDiscrete, handleChange, value, values, mode],
+		[isDiscrete, handleChange, value, values, mode, min, max, step],
 	)
 
 	// Handle mouse down event
@@ -617,6 +755,14 @@ function Slider<T extends SliderValue>({
 					value={value}
 					renderValue={renderValue}
 					getDisplayValue={getDisplayValue}
+				/>
+			)}
+			{showSteps && stepPositions.length > 0 && (
+				<StepDots
+					positions={stepPositions}
+					handlePosition={getHandlePosition()}
+					handleWidth={handleWidth}
+					totalWidth={totalWidth}
 				/>
 			)}
 			<SliderHandle
