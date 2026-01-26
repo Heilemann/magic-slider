@@ -121,10 +121,10 @@ const injectStyles = () => {
 				.magic-slider-step-dot {
 					position: absolute;
 					top: 50%;
-					width: 4px;
-					height: 4px;
+					width: var(--dot-size, 4px);
+					height: var(--dot-size, 4px);
 					border-radius: 50%;
-					background-color: rgba(0, 0, 0, 0.25);
+					background-color: rgba(0, 0, 0, 0.2);
 					transform: translate(-50%, -50%) scale(0);
 					opacity: 0;
 					transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease;
@@ -303,29 +303,35 @@ const StepDots = React.memo(
 	}) => {
 		if (positions.length === 0) return null
 
+		// Calculate spacing between dots to determine size/visibility
+		const maxOffset = totalWidth > 0 ? totalWidth - handleWidth : 100
+		const spacing = positions.length > 1 ? maxOffset / (positions.length - 1) : maxOffset
+
+		// Don't show dots if they'd be too close together (< 10px apart)
+		if (totalWidth > 0 && spacing < 10) return null
+
+		// Scale dot size based on spacing
+		const dotSize = spacing < 16 ? 3 : spacing < 24 ? 4 : 4
+
 		const handleStart = handlePosition
 		const handleEnd = handlePosition + handleWidth
 
 		return (
-			<div className='magic-slider-steps'>
+			<div className='magic-slider-steps' style={{ '--dot-size': `${dotSize}px` } as React.CSSProperties}>
 				{positions.map((percent, i) => {
 					// Calculate where the handle center would be at this position
-					// Use percentage-based calculation that accounts for handle width
 					let leftPercent: number
 					if (totalWidth > 0) {
-						const maxOffset = totalWidth - handleWidth
 						const handlePosAtStep = (percent / 100) * maxOffset
 						const dotX = handlePosAtStep + handleWidth / 2
 						leftPercent = (dotX / totalWidth) * 100
 					} else {
-						// Fallback for test environment or before layout
 						leftPercent = percent
 					}
 
 					const isUnderHandle =
 						totalWidth > 0 &&
 						(() => {
-							const maxOffset = totalWidth - handleWidth
 							const handlePosAtStep = (percent / 100) * maxOffset
 							const dotX = handlePosAtStep + handleWidth / 2
 							return dotX >= handleStart && dotX <= handleEnd
@@ -412,6 +418,8 @@ function Slider<T extends SliderValue>({
 	const startXRef = useRef(0)
 	// Cache bounding rect during drag to avoid layout thrashing
 	const cachedRectRef = useRef<DOMRect | null>(null)
+	// Track offset between cursor and handle center for 1:1 drag movement
+	const dragOffsetRef = useRef(0)
 
 	// Internal state for uncontrolled mode
 	const [internalValue, setInternalValue] = useState<T>(() => {
@@ -482,6 +490,11 @@ function Slider<T extends SliderValue>({
 				setIsDragging(true)
 				startValueRef.current = index
 				startXRef.current = clientX - rect.left
+				// Calculate offset between cursor and handle center for 1:1 drag
+				const maxOffset = rect.width - handleWidth
+				const handlePosition = (index / (values.length - 1)) * maxOffset
+				const handleCenter = handlePosition + handleWidth / 2
+				dragOffsetRef.current = relativeX - handleCenter
 				return
 			}
 
@@ -496,17 +509,28 @@ function Slider<T extends SliderValue>({
 			// For discrete values, click to jump to nearest value
 			if (isDiscrete && values) {
 				const relativeX = clientX - rect.left
-				const index = Math.round((relativeX / rect.width) * (values.length - 1))
-				handleChange(values[Math.max(0, Math.min(index, values.length - 1))])
+				// Account for handle width: the handle center range is from handleWidth/2 to width-handleWidth/2
+				const maxOffset = rect.width - handleWidth
+				const adjustedX = Math.max(0, Math.min(maxOffset, relativeX - handleWidth / 2))
+				const index = Math.round((adjustedX / maxOffset) * (values.length - 1))
+				const clampedIndex = Math.max(0, Math.min(index, values.length - 1))
+				handleChange(values[clampedIndex])
 				setIsDragging(true)
-				startValueRef.current = index
-				startXRef.current = clientX - rect.left
+				startValueRef.current = clampedIndex
+				startXRef.current = relativeX
+				// Calculate offset between cursor and handle center for 1:1 drag
+				const handlePosition = (clampedIndex / (values.length - 1)) * maxOffset
+				const handleCenter = handlePosition + handleWidth / 2
+				dragOffsetRef.current = relativeX - handleCenter
 				return
 			}
 
 			// For continuous sliders, jump to clicked position
 			const relativeX = clientX - rect.left
-			const clickedValue = min + (relativeX / rect.width) * (max - min)
+			// Account for handle width: map click position to value considering handle center
+			const maxOffset = rect.width - handleWidth
+			const adjustedX = Math.max(0, Math.min(maxOffset, relativeX - handleWidth / 2))
+			const clickedValue = min + (adjustedX / maxOffset) * (max - min)
 			const steppedValue = Math.round(clickedValue / step) * step
 			const clampedValue = Math.max(min, Math.min(max, steppedValue))
 			handleChange(clampedValue as T)
@@ -514,8 +538,12 @@ function Slider<T extends SliderValue>({
 			setIsDragging(true)
 			startValueRef.current = clampedValue
 			startXRef.current = relativeX
+			// Calculate offset between cursor and handle center for 1:1 drag
+			const handlePosition = ((clampedValue - min) / (max - min)) * maxOffset
+			const handleCenter = handlePosition + handleWidth / 2
+			dragOffsetRef.current = relativeX - handleCenter
 		},
-		[isDiscrete, handleChange, value, values, mode, min, max, step],
+		[isDiscrete, handleChange, value, values, mode, min, max, step, handleWidth],
 	)
 
 	// Handle mouse down event
@@ -549,36 +577,33 @@ function Slider<T extends SliderValue>({
 			const relativeX = Math.max(0, Math.min(rect.width, clientX - rect.left))
 
 			if (mode === 'tabs' && values) {
-				const index = Math.floor((relativeX / rect.width) * values.length)
-				handleChange(values[index])
+				// Apply offset so handle follows cursor 1:1
+				const maxOffset = rect.width - handleWidth
+				const targetHandleCenter = relativeX - dragOffsetRef.current
+				const targetHandlePos = Math.max(0, Math.min(maxOffset, targetHandleCenter - handleWidth / 2))
+				const index = Math.round((targetHandlePos / maxOffset) * (values.length - 1))
+				handleChange(values[Math.max(0, Math.min(index, values.length - 1))])
 				return
 			}
 
 			if (isDiscrete && values) {
-				// For discrete values, always use zone-based mapping
-				const index = Math.round((relativeX / rect.width) * (values.length - 1))
-				handleChange(values[index])
+				// Apply offset so handle follows cursor 1:1
+				const maxOffset = rect.width - handleWidth
+				const targetHandleCenter = relativeX - dragOffsetRef.current
+				const targetHandlePos = Math.max(0, Math.min(maxOffset, targetHandleCenter - handleWidth / 2))
+				const index = Math.round((targetHandlePos / maxOffset) * (values.length - 1))
+				handleChange(values[Math.max(0, Math.min(index, values.length - 1))])
 				return
 			}
 
-			// Calculate step width in pixels
-			const stepWidth = (rect.width / (max - min)) * step
-
-			if (stepWidth > handleWidth) {
-				// For large steps, use direct position mapping
-				const newValue =
-					min +
-					Math.round(((relativeX / rect.width) * (max - min)) / step) * step
-				handleChange(newValue as T)
-			} else {
-				// For small steps, use delta-based movement
-				const delta = relativeX - startXRef.current
-				let newValue =
-					startValueRef.current + (delta / rect.width) * (max - min)
-				newValue = Math.max(min, Math.min(max, newValue))
-				const stepped = Math.round(newValue / step) * step
-				handleChange(stepped as T)
-			}
+			// Apply offset so handle follows cursor 1:1
+			const maxOffset = rect.width - handleWidth
+			const targetHandleCenter = relativeX - dragOffsetRef.current
+			const targetHandlePos = Math.max(0, Math.min(maxOffset, targetHandleCenter - handleWidth / 2))
+			const rawValue = min + (targetHandlePos / maxOffset) * (max - min)
+			const steppedValue = Math.round(rawValue / step) * step
+			const clampedValue = Math.max(min, Math.min(max, steppedValue))
+			handleChange(clampedValue as T)
 		},
 		[
 			isDragging,
