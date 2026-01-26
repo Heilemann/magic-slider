@@ -17,6 +17,13 @@ const injectStyles = () => {
 					overflow: hidden;
 					border-radius: 0.375rem;
 					background-color: rgba(0, 0, 0, 0.05);
+					outline: none;
+					touch-action: none;
+				}
+
+				.magic-slider:focus-visible {
+					outline: 2px solid rgb(59, 130, 246);
+					outline-offset: 2px;
 				}
 
 				/* Slider label */
@@ -108,29 +115,50 @@ const injectStyles = () => {
 	}
 }
 
+/** Supported value types for the slider */
 type SliderValue = number | string
 
+/**
+ * Props for the Slider component
+ * @template T - The type of value the slider handles (number or string)
+ */
 interface SliderProps<T extends SliderValue> {
+	/** Controlled value - use with onChange for controlled component */
 	value?: T
+	/** Initial value for uncontrolled component */
 	defaultValue?: T
+	/** Callback fired when the value changes */
 	onChange?: (value: T) => void
+	/** Label displayed on the slider */
 	label?: string
+	/** Minimum value (default: 0). Ignored when using discrete `values` */
 	min?: number
+	/** Maximum value (default: 100). Ignored when using discrete `values` */
 	max?: number
+	/** Step increment (default: 1). Ignored when using discrete `values` */
 	step?: number
+	/** Array of discrete values. When provided, the slider snaps to these values only */
 	values?: T[]
+	/** Additional CSS class for the slider container */
 	className?: string
+	/** Custom render function for the value display */
 	renderValue?: (value: T) => React.ReactNode
+	/** Display mode: 'default' shows label/value, 'tabs' shows clickable segments */
 	mode?: 'default' | 'tabs'
+	/** Handle sizing: 'fixed' (24px) or 'proportional' (based on step) */
 	handleSize?: 'fixed' | 'proportional'
+	/** Accessible label for screen readers (uses label prop if not provided) */
+	'aria-label'?: string
+	/** ID of element that labels this slider */
+	'aria-labelledby'?: string
 }
 
 const HANDLE_WIDTH_CONTINUOUS = 24
 
-const SliderLabel = ({ label }: { label?: string }) => {
+const SliderLabel = React.memo(({ label }: { label?: string }) => {
 	if (!label) return null
 	return <div className='magic-slider-label'>{label}</div>
-}
+})
 
 const SliderValue = <T extends SliderValue>({
 	value,
@@ -203,7 +231,7 @@ const SliderHandle = <T extends SliderValue>({
 	)
 }
 
-const ClickableArea = () => <div className='magic-slider-clickable' />
+const ClickableArea = React.memo(() => <div className='magic-slider-clickable' />)
 
 function Slider<T extends SliderValue>({
 	value: controlledValue,
@@ -218,11 +246,50 @@ function Slider<T extends SliderValue>({
 	renderValue,
 	mode = 'default',
 	handleSize = 'fixed',
+	'aria-label': ariaLabel,
+	'aria-labelledby': ariaLabelledBy,
 }: SliderProps<T>) {
 	// Inject styles on component mount
 	useEffect(() => {
 		injectStyles()
 	}, [])
+
+	// Validate props in development mode
+	useEffect(() => {
+		if (process.env.NODE_ENV === 'production') return
+
+		if (values !== undefined && values.length === 0) {
+			console.warn(
+				'[Slider] The `values` prop is an empty array. Provide at least one value or remove the prop.',
+			)
+		}
+
+		if (min >= max) {
+			console.warn(
+				`[Slider] \`min\` (${min}) should be less than \`max\` (${max}).`,
+			)
+		}
+
+		if (step <= 0) {
+			console.warn(
+				`[Slider] \`step\` (${step}) should be greater than 0.`,
+			)
+		}
+
+		if (!values && typeof controlledValue === 'number') {
+			if (controlledValue < min || controlledValue > max) {
+				console.warn(
+					`[Slider] \`value\` (${controlledValue}) is outside the range [${min}, ${max}].`,
+				)
+			}
+		}
+
+		if (values && controlledValue !== undefined && !values.includes(controlledValue)) {
+			console.warn(
+				`[Slider] \`value\` (${controlledValue}) is not in the \`values\` array.`,
+			)
+		}
+	}, [values, min, max, step, controlledValue])
 
 	const isDiscrete = Boolean(values)
 	const sliderRef = useRef<HTMLDivElement>(null)
@@ -230,6 +297,8 @@ function Slider<T extends SliderValue>({
 	const [isDragging, setIsDragging] = useState(false)
 	const startValueRef = useRef(0)
 	const startXRef = useRef(0)
+	// Cache bounding rect during drag to avoid layout thrashing
+	const cachedRectRef = useRef<DOMRect | null>(null)
 
 	// Internal state for uncontrolled mode
 	const [internalValue, setInternalValue] = useState<T>(() => {
@@ -242,14 +311,17 @@ function Slider<T extends SliderValue>({
 	const value = controlledValue !== undefined ? controlledValue : internalValue
 
 	// Handle value changes
-	const handleChange = (newValue: T) => {
-		// In uncontrolled mode, update internal state
-		if (controlledValue === undefined) {
-			setInternalValue(newValue)
-		}
-		// Always call onChange if provided
-		onChange?.(newValue)
-	}
+	const handleChange = useCallback(
+		(newValue: T) => {
+			// In uncontrolled mode, update internal state
+			if (controlledValue === undefined) {
+				setInternalValue(newValue)
+			}
+			// Always call onChange if provided
+			onChange?.(newValue)
+		},
+		[controlledValue, onChange],
+	)
 
 	// Update handle width when container size or discrete values change
 	useEffect(() => {
@@ -263,15 +335,7 @@ function Slider<T extends SliderValue>({
 		} else {
 			setHandleWidth(HANDLE_WIDTH_CONTINUOUS)
 		}
-	}, [
-		isDiscrete,
-		values,
-		sliderRef.current?.getBoundingClientRect().width,
-		handleSize,
-		step,
-		max,
-		min,
-	])
+	}, [isDiscrete, values, handleSize, step, max, min])
 
 	// Get current value as a percentage (0-100)
 	const getCurrentValue = useCallback(() => {
@@ -282,22 +346,22 @@ function Slider<T extends SliderValue>({
 		return Number(value)
 	}, [isDiscrete, value, values])
 
-	// Handle mouse down event
-	const handleMouseDown = useCallback(
-		(e: React.MouseEvent) => {
-			e.preventDefault()
-			e.stopPropagation()
-
+	// Shared logic for starting a drag (mouse or touch)
+	const startDrag = useCallback(
+		(clientX: number) => {
 			const rect = sliderRef.current?.getBoundingClientRect()
 			if (!rect) return
 
+			// Cache the rect for use during drag to avoid repeated layout calculations
+			cachedRectRef.current = rect
+
 			if (mode === 'tabs' && values) {
-				const relativeX = e.clientX - rect.left
+				const relativeX = clientX - rect.left
 				const index = Math.floor((relativeX / rect.width) * values.length)
 				handleChange(values[index])
 				setIsDragging(true)
 				startValueRef.current = index
-				startXRef.current = e.clientX - rect.left
+				startXRef.current = clientX - rect.left
 				return
 			}
 
@@ -311,23 +375,40 @@ function Slider<T extends SliderValue>({
 
 			setIsDragging(true)
 			startValueRef.current = getCurrentValue()
-			startXRef.current = e.clientX - rect.left
+			startXRef.current = clientX - rect.left
 		},
 		[getCurrentValue, isDiscrete, handleChange, value, values, mode],
 	)
 
-	// NOTE: Here is the critical difference:
-	// these two handlers accept the native "globalThis.MouseEvent",
-	// not React's synthetic "React.MouseEvent"
-	const handleMouseMove = useCallback(
-		(e: globalThis.MouseEvent) => {
-			if (!isDragging || !sliderRef.current) return
-
+	// Handle mouse down event
+	const handleMouseDown = useCallback(
+		(e: React.MouseEvent) => {
 			e.preventDefault()
 			e.stopPropagation()
+			startDrag(e.clientX)
+		},
+		[startDrag],
+	)
 
-			const rect = sliderRef.current.getBoundingClientRect()
-			const relativeX = Math.max(0, Math.min(rect.width, e.clientX - rect.left))
+	// Handle touch start event
+	const handleTouchStart = useCallback(
+		(e: React.TouchEvent) => {
+			if (e.touches.length !== 1) return
+			startDrag(e.touches[0].clientX)
+		},
+		[startDrag],
+	)
+
+	// Shared logic for moving during drag (mouse or touch)
+	const moveDrag = useCallback(
+		(clientX: number) => {
+			if (!isDragging) return
+
+			// Use cached rect to avoid layout thrashing during drag
+			const rect = cachedRectRef.current
+			if (!rect) return
+
+			const relativeX = Math.max(0, Math.min(rect.width, clientX - rect.left))
 
 			if (mode === 'tabs' && values) {
 				const index = Math.floor((relativeX / rect.width) * values.length)
@@ -374,24 +455,122 @@ function Slider<T extends SliderValue>({
 		],
 	)
 
+	// Mouse move handler (native event)
+	const handleMouseMove = useCallback(
+		(e: globalThis.MouseEvent) => {
+			e.preventDefault()
+			e.stopPropagation()
+			moveDrag(e.clientX)
+		},
+		[moveDrag],
+	)
+
+	// Touch move handler (native event)
+	const handleTouchMove = useCallback(
+		(e: globalThis.TouchEvent) => {
+			if (e.touches.length !== 1) return
+			e.preventDefault()
+			moveDrag(e.touches[0].clientX)
+		},
+		[moveDrag],
+	)
+
 	const handleMouseUp = useCallback(() => {
 		setIsDragging(false)
+		cachedRectRef.current = null
 	}, [])
+
+	// Handle keyboard navigation
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (isDiscrete && values) {
+				const currentIndex = values.indexOf(value)
+				let newIndex = currentIndex
+
+				switch (e.key) {
+					case 'ArrowRight':
+					case 'ArrowUp':
+						e.preventDefault()
+						newIndex = Math.min(currentIndex + 1, values.length - 1)
+						break
+					case 'ArrowLeft':
+					case 'ArrowDown':
+						e.preventDefault()
+						newIndex = Math.max(currentIndex - 1, 0)
+						break
+					case 'Home':
+						e.preventDefault()
+						newIndex = 0
+						break
+					case 'End':
+						e.preventDefault()
+						newIndex = values.length - 1
+						break
+					default:
+						return
+				}
+
+				if (newIndex !== currentIndex) {
+					handleChange(values[newIndex])
+				}
+			} else {
+				const numValue = Number(value)
+				let newValue = numValue
+
+				switch (e.key) {
+					case 'ArrowRight':
+					case 'ArrowUp':
+						e.preventDefault()
+						newValue = Math.min(numValue + step, max)
+						break
+					case 'ArrowLeft':
+					case 'ArrowDown':
+						e.preventDefault()
+						newValue = Math.max(numValue - step, min)
+						break
+					case 'Home':
+						e.preventDefault()
+						newValue = min
+						break
+					case 'End':
+						e.preventDefault()
+						newValue = max
+						break
+					default:
+						return
+				}
+
+				if (newValue !== numValue) {
+					handleChange(newValue as T)
+				}
+			}
+		},
+		[isDiscrete, values, value, step, min, max, handleChange],
+	)
 
 	// Add and remove event listeners with native event types
 	useEffect(() => {
 		if (isDragging) {
 			window.addEventListener('mousemove', handleMouseMove)
 			window.addEventListener('mouseup', handleMouseUp)
+			window.addEventListener('touchmove', handleTouchMove, { passive: false })
+			window.addEventListener('touchend', handleMouseUp)
+			window.addEventListener('touchcancel', handleMouseUp)
 		} else {
 			window.removeEventListener('mousemove', handleMouseMove)
 			window.removeEventListener('mouseup', handleMouseUp)
+			window.removeEventListener('touchmove', handleTouchMove)
+			window.removeEventListener('touchend', handleMouseUp)
+			window.removeEventListener('touchcancel', handleMouseUp)
 		}
 		return () => {
 			window.removeEventListener('mousemove', handleMouseMove)
 			window.removeEventListener('mouseup', handleMouseUp)
+			window.removeEventListener('touchmove', handleTouchMove)
+			window.removeEventListener('touchend', handleMouseUp)
+			window.removeEventListener('touchcancel', handleMouseUp)
 		}
-	}, [isDragging, handleMouseMove, handleMouseUp])
+	}, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove])
 
 	// Format display value
 	const getDisplayValue = useCallback(() => {
@@ -410,11 +589,27 @@ function Slider<T extends SliderValue>({
 		return (currentVal / range) * maxOffset
 	}, [getCurrentValue, handleWidth, isDiscrete, max, min])
 
+	// Compute ARIA values
+	const ariaValueNow = isDiscrete && values ? values.indexOf(value) : Number(value)
+	const ariaValueMin = isDiscrete && values ? 0 : min
+	const ariaValueMax = isDiscrete && values ? values.length - 1 : max
+	const ariaValueText = isDiscrete ? String(value) : undefined
+
 	return (
 		<div
 			ref={sliderRef}
 			className={`magic-slider ${className}`}
 			onMouseDown={handleMouseDown}
+			onTouchStart={handleTouchStart}
+			onKeyDown={handleKeyDown}
+			role="slider"
+			tabIndex={0}
+			aria-valuemin={ariaValueMin}
+			aria-valuemax={ariaValueMax}
+			aria-valuenow={ariaValueNow}
+			aria-valuetext={ariaValueText}
+			aria-label={ariaLabel || label}
+			aria-labelledby={ariaLabelledBy}
 		>
 			<SliderLabel label={label} />
 			{mode === 'default' && (

@@ -10,6 +10,8 @@ A flexible and customizable slider component for React with TypeScript support.
 - TypeScript support
 - Controlled and uncontrolled modes
 - Tab mode for discrete values
+- Full accessibility support (ARIA attributes, keyboard navigation)
+- Touch support for mobile devices
 
 ## Installation
 
@@ -116,19 +118,34 @@ npm run dev
 
 ## Props
 
-| Prop         | Type                          | Default   | Description                         |
-| ------------ | ----------------------------- | --------- | ----------------------------------- |
-| value        | number \| string              | -         | Controlled value                    |
-| defaultValue | number \| string              | -         | Default value for uncontrolled mode |
-| onChange     | (value: T) => void            | -         | Callback when value changes         |
-| label        | string                        | -         | Label text                          |
-| min          | number                        | 0         | Minimum value                       |
-| max          | number                        | 100       | Maximum value                       |
-| step         | number                        | 1         | Step size                           |
-| values       | T[]                           | -         | Array of discrete values            |
-| className    | string                        | ''        | Additional CSS classes              |
-| renderValue  | (value: T) => React.ReactNode | -         | Custom value renderer               |
-| mode         | 'default' \| 'tabs'           | 'default' | Slider mode                         |
+| Prop            | Type                          | Default   | Description                                      |
+| --------------- | ----------------------------- | --------- | ------------------------------------------------ |
+| value           | number \| string              | -         | Controlled value                                 |
+| defaultValue    | number \| string              | -         | Default value for uncontrolled mode              |
+| onChange        | (value: T) => void            | -         | Callback when value changes                      |
+| label           | string                        | -         | Label text                                       |
+| min             | number                        | 0         | Minimum value                                    |
+| max             | number                        | 100       | Maximum value                                    |
+| step            | number                        | 1         | Step size                                        |
+| values          | T[]                           | -         | Array of discrete values                         |
+| className       | string                        | ''        | Additional CSS classes                           |
+| renderValue     | (value: T) => React.ReactNode | -         | Custom value renderer                            |
+| mode            | 'default' \| 'tabs'           | 'default' | Slider mode                                      |
+| handleSize      | 'fixed' \| 'proportional'     | 'fixed'   | Handle sizing mode                               |
+| aria-label      | string                        | -         | Accessible label for screen readers              |
+| aria-labelledby | string                        | -         | ID of element that labels this slider            |
+
+## Accessibility
+
+The slider is fully accessible with:
+
+- **ARIA attributes**: `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext`
+- **Keyboard navigation**:
+  - `Arrow Left/Down`: Decrease value
+  - `Arrow Right/Up`: Increase value
+  - `Home`: Jump to minimum
+  - `End`: Jump to maximum
+- **Focus indicator**: Visible focus ring when using keyboard navigation
 
 ## License
 
