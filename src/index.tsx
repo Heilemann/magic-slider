@@ -18,12 +18,12 @@ const injectStyles = () => {
 			const styleSheet = document.createElement('style')
 			styleSheet.id = 'magic-slider-styles'
 			styleSheet.textContent = `
+			@layer magic-slider {
 				/* Slider container */
 				.magic-slider {
 					position: relative;
 					height: 2.25rem;
 					user-select: none;
-					overflow: hidden;
 					border-radius: 0.375rem;
 					background-color: rgba(0, 0, 0, 0.05);
 					outline: none;
@@ -148,6 +148,13 @@ const injectStyles = () => {
 					transform: translate(-50%, -50%) scale(0);
 					opacity: 0;
 				}
+
+				/* Disabled state */
+				.magic-slider[aria-disabled="true"] {
+					opacity: 0.5;
+					pointer-events: none;
+				}
+			}
 			`
 			document.head.appendChild(styleSheet)
 		}
@@ -228,13 +235,15 @@ interface SliderProps<T extends SliderValue> {
 	'aria-labelledby'?: string
 	/** Show step indicator dots on the track */
 	showSteps?: boolean
+	/** Whether the slider is disabled */
+	disabled?: boolean
 }
 
 const HANDLE_WIDTH_CONTINUOUS = 24
 
 const SliderLabel = React.memo(({ label, className, style }: { label?: string; className?: string; style?: React.CSSProperties }) => {
 	if (!label) return null
-	return <div className={`magic-slider-label ${className || ''}`} style={style}>{label}</div>
+	return <div className={`magic-slider-label ${className || ''}`} style={style} aria-hidden="true">{label}</div>
 })
 
 const SliderValueDisplay = <T extends SliderValue>({
@@ -250,7 +259,7 @@ const SliderValueDisplay = <T extends SliderValue>({
 	className?: string
 	style?: React.CSSProperties
 }) => (
-	<div className={`magic-slider-value ${className || ''}`} style={style}>
+	<div className={`magic-slider-value ${className || ''}`} style={style} aria-hidden="true">
 		{renderValue ? renderValue(value) : getDisplayValue()}
 	</div>
 )
@@ -304,11 +313,12 @@ const SliderHandle = <T extends SliderValue>({
 							...style,
 							...springs,
 						}}
+						aria-hidden="true"
 					/>
 				) : (
-					<div className={handleClassName} style={staticStyle} />
+					<div className={handleClassName} style={staticStyle} aria-hidden="true" />
 				)}
-				<div className='magic-slider-tabs'>
+				<div className='magic-slider-tabs' aria-hidden="true">
 					{values.map((v, i) => (
 						<div
 							key={i}
@@ -324,7 +334,7 @@ const SliderHandle = <T extends SliderValue>({
 	}
 
 	if (!isClient) {
-		return <div className={handleClassName} style={staticStyle} />
+		return <div className={handleClassName} style={staticStyle} aria-hidden="true" />
 	}
 
 	return (
@@ -335,11 +345,12 @@ const SliderHandle = <T extends SliderValue>({
 				...style,
 				...springs,
 			}}
+			aria-hidden="true"
 		/>
 	)
 }
 
-const ClickableArea = React.memo(() => <div className='magic-slider-clickable' />)
+const ClickableArea = React.memo(() => <div className='magic-slider-clickable' aria-hidden="true" />)
 
 /** Calculate step positions as percentages (0-100) */
 const calculateStepPositions = <T extends SliderValue>(
@@ -397,7 +408,7 @@ const StepDots = React.memo(
 		const handleEnd = handlePosition + handleWidth
 
 		return (
-			<div className={`magic-slider-steps ${className || ''}`} style={{ '--dot-size': `${dotSize}px`, ...style } as React.CSSProperties}>
+			<div className={`magic-slider-steps ${className || ''}`} style={{ '--dot-size': `${dotSize}px`, ...style } as React.CSSProperties} aria-hidden="true">
 				{positions.map((percent, i) => {
 					// Calculate where the handle center would be at this position
 					let leftPercent: number
@@ -448,6 +459,7 @@ function Slider<T extends SliderValue>({
 	'aria-label': ariaLabel,
 	'aria-labelledby': ariaLabelledBy,
 	showSteps = false,
+	disabled = false,
 }: SliderProps<T>) {
 	// Inject styles on component mount
 	useEffect(() => {
@@ -559,6 +571,7 @@ function Slider<T extends SliderValue>({
 	// Shared logic for starting a drag (mouse or touch)
 	const startDrag = useCallback(
 		(clientX: number) => {
+			if (disabled) return
 			const rect = sliderRef.current?.getBoundingClientRect()
 			if (!rect) return
 
@@ -625,7 +638,7 @@ function Slider<T extends SliderValue>({
 			const handleCenter = handlePosition + handleWidth / 2
 			dragOffsetRef.current = relativeX - handleCenter
 		},
-		[isDiscrete, handleChange, value, values, mode, min, max, step, handleWidth],
+		[disabled, isDiscrete, handleChange, value, values, mode, min, max, step, handleWidth],
 	)
 
 	// Handle mouse down event
@@ -728,6 +741,7 @@ function Slider<T extends SliderValue>({
 	// Handle keyboard navigation
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
+			if (disabled) return
 			if (isDiscrete && values) {
 				const currentIndex = values.indexOf(value)
 				let newIndex = currentIndex
@@ -790,7 +804,7 @@ function Slider<T extends SliderValue>({
 				}
 			}
 		},
-		[isDiscrete, values, value, step, min, max, handleChange],
+		[disabled, isDiscrete, values, value, step, min, max, handleChange],
 	)
 
 	// Add and remove event listeners with native event types
@@ -849,13 +863,15 @@ function Slider<T extends SliderValue>({
 			onTouchStart={handleTouchStart}
 			onKeyDown={handleKeyDown}
 			role="slider"
-			tabIndex={0}
+			tabIndex={disabled ? -1 : 0}
+			aria-orientation="horizontal"
 			aria-valuemin={ariaValueMin}
 			aria-valuemax={ariaValueMax}
 			aria-valuenow={ariaValueNow}
 			aria-valuetext={ariaValueText}
 			aria-label={ariaLabel || label}
 			aria-labelledby={ariaLabelledBy}
+			aria-disabled={disabled || undefined}
 		>
 			<SliderLabel label={label} className={classNames?.label} style={styles?.label} />
 			{mode === 'default' && (
